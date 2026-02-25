@@ -5,9 +5,6 @@ use core::panic::PanicInfo;
 
 use cortex_m::delay::Delay;
 use embassy_stm32::{
-    Peri,
-    gpio::Output,
-    peripherals::PA10,
     rcc::HSI_FREQ,
     usart::{Config, Uart},
 };
@@ -20,6 +17,7 @@ unsafe extern "C" {
 }
 
 #[panic_handler]
+#[allow(unused)]
 fn panic(info: &PanicInfo) -> ! {
     // TODO: En un futuro esto usa la implementacion por can
     #[cfg(feature = "defmt")]
@@ -33,25 +31,26 @@ fn bootloader() {
     let peripherals = embassy_stm32::init(embassy_stm32::Config::default());
     let mut delay = Delay::new(core_peri.SYST, HSI_FREQ.0);
 
-    //info!("Running bootloader");
-    let mut uart_cfg = Config::default();
-    uart_cfg.baudrate = 9600;
-    let mut uart = Uart::new_blocking(
-        peripherals.USART1,
-        peripherals.PA10,
-        peripherals.PA9,
-        uart_cfg,
-    )
-    .unwrap();
+    #[cfg(feature = "defmt")]
+    {
+        defmt::info!("Running bootloader");
+        let mut uart_cfg = Config::default();
+        uart_cfg.baudrate = 9600;
+        let mut uart = Uart::new_blocking(
+            peripherals.USART1,
+            peripherals.PA10,
+            peripherals.PA9,
+            uart_cfg,
+        )
+        .unwrap();
 
-    let mut byte = [0];
-    //info!("WEITIN");
-    let res = uart.blocking_read(&mut byte);
-    //info!("{:?}", res);
-    //info!("BYTE: RECV: {}", byte);
+        defmt::info!("WAITING");
+        let mut byte = [0];
+        let res = uart.blocking_read(&mut byte);
+        defmt::info!("{:?}", res);
+        defmt::info!("BYTE: RECV: {}", byte);
+    }
 
-    delay.delay_ms(100);
-    //info!("Running bootloader");
     delay.free();
 }
 
@@ -62,7 +61,14 @@ fn main() -> ! {
     let core_peri = unsafe { cortex_m::Peripherals::steal() };
 
     #[cfg(feature = "defmt")]
-    defmt::flush();
+    {
+        defmt::info!("Jumping to APP");
+        defmt::flush();
+        // On defmt mode we want to not jump to the app and only debug the bootloader
+        loop {
+            cortex_m::asm::wfi();
+        }
+    }
     #[allow(unreachable_code)]
     {
         cortex_m::interrupt::disable();
@@ -89,5 +95,4 @@ fn main() -> ! {
         }
         panic!("App returned");
     }
-    loop {}
 }
