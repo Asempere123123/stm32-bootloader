@@ -1,0 +1,3 @@
+[toolchain]
+components = ["rust-src", "rustfmt"]
+targets = ["{{ chip-arch }}"]

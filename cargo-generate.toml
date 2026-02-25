@@ -1,0 +1,7 @@
+[placeholders]
+chip-name = { prompt = "Enter chip name", default = "STM32F411RE", type = "string" }
+chip-hal-name = { prompt = "Enter chip name in embassy-stm32 HAL", default = "stm32f411re", type = "string" }
+chip-arch = { prompt = "Enter chip arch", default = "thumbv7em-none-eabi", type = "string" }
+
+[template]
+exclude = ["Cargo.lock", "target"]
