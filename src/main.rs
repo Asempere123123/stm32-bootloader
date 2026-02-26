@@ -3,10 +3,10 @@
 
 use core::panic::PanicInfo;
 
-use cortex_m::delay::Delay;
+use cortex_m::{delay::Delay, peripheral::SYST};
 use embassy_stm32::{
-    rcc::HSI_FREQ,
     usart::{Config, Uart},
+    Peripherals,
 };
 
 #[cfg(feature = "defmt")]
@@ -26,10 +26,31 @@ fn panic(info: &PanicInfo) -> ! {
     cortex_m::asm::udf()
 }
 
+#[cfg(not(feature = "hse"))]
+fn init_hal(syst: SYST) -> (Peripherals, Delay) {
+    let peripherals = embassy_stm32::init(embassy_stm32::Config::default());
+    let delay = Delay::new(syst, embassy_stm32::rcc::HSI_FREQ.0);
+    (peripherals, delay)
+}
+
+#[cfg(feature = "hse")]
+fn init_hal(syst: SYST) -> (Peripherals, Delay) {
+    let mut config = embassy_stm32::Config::default();
+    config.rcc.hse = Some(embassy_stm32::rcc::Hse {
+        #[rustfmt::skip]
+        freq: embassy_stm32::time::Hertz({{ hse-freq }}),
+        mode: embassy_stm32::rcc::HseMode::Oscillator,
+    });
+    config.rcc.sys = embassy_stm32::rcc::Sysclk::HSE;
+    let peripherals = embassy_stm32::init(config);
+    #[rustfmt::skip]
+    let delay = Delay::new(syst, {{ hse-freq }});
+    (peripherals, delay)
+}
+
 fn bootloader() {
     let core_peri = unsafe { cortex_m::Peripherals::steal() };
-    let peripherals = embassy_stm32::init(embassy_stm32::Config::default());
-    let mut delay = Delay::new(core_peri.SYST, HSI_FREQ.0);
+    let (peripherals, mut delay) = init_hal(core_peri.SYST);
 
     #[cfg(feature = "defmt")]
     {

@@ -23,6 +23,7 @@ defmt = [
     "dep:defmt-rtt",
     "embassy-stm32/defmt"
 ]
+hse = []
 
 [profile.dev]
 opt-level = "z"

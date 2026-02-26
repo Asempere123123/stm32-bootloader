@@ -2,6 +2,8 @@
 chip-name = { prompt = "Enter chip name", default = "STM32F411RE", type = "string" }
 chip-hal-name = { prompt = "Enter chip name in embassy-stm32 HAL", default = "stm32f411re", type = "string" }
 chip-arch = { prompt = "Enter chip arch", default = "thumbv7em-none-eabi", type = "string" }
+flash-size = { prompt = "Enter flask size (K)", default = "16", type = "string" }
+hse-freq = { prompt = "Enter HSE freq", default = "8000000", type = "string" }
 
 [template]
 exclude = ["Cargo.lock", "target"]
