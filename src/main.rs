@@ -90,9 +90,8 @@ fn main() -> ! {
     {
         cortex_m::interrupt::disable();
 
-        embassy_stm32::rcc::reinit(embassy_stm32::rcc::Config::default(), unsafe {
-            &mut embassy_stm32::peripherals::RCC::steal()
-        });
+        let mut rcc = unsafe { embassy_stm32::peripherals::RCC::steal() };
+        embassy_stm32::rcc::reinit(embassy_stm32::rcc::Config::default(), &mut rcc);
         embassy_stm32::rcc::enable_and_reset::<embassy_stm32::peripherals::TIM1>();
         embassy_stm32::rcc::disable::<embassy_stm32::peripherals::TIM1>();
 
