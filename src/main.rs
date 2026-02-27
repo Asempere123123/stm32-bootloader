@@ -4,7 +4,6 @@
 use core::panic::PanicInfo;
 
 use embassy_stm32::{
-    pac,
     usart::{Config, Uart},
     Peripherals,
 };
@@ -91,27 +90,11 @@ fn main() -> ! {
     {
         cortex_m::interrupt::disable();
 
-        let rcc = pac::RCC;
-        // Enable HSI
-        rcc.cr().modify(|w| w.set_hsion(true));
-        while !rcc.cr().read().hsirdy() {}
-
-        // Switch SYSCLK to HSI
-        rcc.cfgr().modify(|w| w.set_sw(pac::rcc::vals::Sw::HSI));
-        while rcc.cfgr().read().sws() != pac::rcc::vals::Sw::HSI {}
-
-        // Disable PLL, HSE, CSS
-        rcc.cr().modify(|w| {
-            w.set_hseon(false);
-            w.set_csson(false);
+        embassy_stm32::rcc::reinit(embassy_stm32::rcc::Config::default(), unsafe {
+            &mut embassy_stm32::peripherals::RCC::steal()
         });
-
-        // TIM1
-        pac::TIM1.cr1().modify(|w| w.set_cen(false));
-        pac::TIM1.bdtr().modify(|w| w.set_moe(false));
-        rcc.apb2rstr().modify(|w| w.set_tim1rst(true));
-        rcc.apb2rstr().modify(|w| w.set_tim1rst(false));
-        rcc.apb2enr().modify(|w| w.set_tim1en(false));
+        embassy_stm32::rcc::enable_and_reset::<embassy_stm32::peripherals::TIM1>();
+        embassy_stm32::rcc::disable::<embassy_stm32::peripherals::TIM1>();
 
         // NVIC
         for i in 0..8 {
@@ -127,12 +110,13 @@ fn main() -> ! {
         cortex_m::asm::isb();
 
         // Do a bound check on isp and reset vector
-        unsafe { cortex_m::interrupt::enable() };
         unsafe {
             core_peri
                 .SCB
                 .vtor
                 .write(&_app_vector_table as *const _ as u32);
+            cortex_m::asm::dsb();
+            cortex_m::asm::isb();
 
             cortex_m::asm::bootload(&_app_vector_table);
         }
