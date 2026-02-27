@@ -102,17 +102,9 @@ fn main() -> ! {
 
         // Disable PLL, HSE, CSS
         rcc.cr().modify(|w| {
-            w.set_pllon(false);
             w.set_hseon(false);
             w.set_csson(false);
         });
-
-        // Reset peripheral clock registers (AHB/APB enable registers)
-        // This turns off the clocks for all GPIOs, DMAs, etc.
-        rcc.ahb1enr().write(|w| w.0 = 0);
-        rcc.ahb2enr().write(|w| w.0 = 0);
-        rcc.apb1enr().write(|w| w.0 = 0);
-        rcc.apb2enr().write(|w| w.0 = 0);
 
         // TIM1
         pac::TIM1.cr1().modify(|w| w.set_cen(false));
