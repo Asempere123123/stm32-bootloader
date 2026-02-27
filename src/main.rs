@@ -117,6 +117,7 @@ fn main() -> ! {
             cortex_m::asm::dsb();
             cortex_m::asm::isb();
 
+            unsafe { cortex_m::interrupt::enable() };
             cortex_m::asm::bootload(&_app_vector_table);
         }
         panic!("App returned");
