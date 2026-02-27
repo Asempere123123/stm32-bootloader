@@ -3,11 +3,13 @@
 
 use core::panic::PanicInfo;
 
-use cortex_m::{delay::Delay, peripheral::SYST};
 use embassy_stm32::{
+    pac,
     usart::{Config, Uart},
     Peripherals,
 };
+
+use embassy_time::{Duration, Timer};
 
 #[cfg(feature = "defmt")]
 use defmt_rtt as _;
@@ -27,14 +29,13 @@ fn panic(info: &PanicInfo) -> ! {
 }
 
 #[cfg(not(feature = "hse"))]
-fn init_hal(syst: SYST) -> (Peripherals, Delay) {
+fn init_hal() -> Peripherals {
     let peripherals = embassy_stm32::init(embassy_stm32::Config::default());
-    let delay = Delay::new(syst, embassy_stm32::rcc::HSI_FREQ.0);
-    (peripherals, delay)
+    peripherals
 }
 
 #[cfg(feature = "hse")]
-fn init_hal(syst: SYST) -> (Peripherals, Delay) {
+fn init_hal() -> Peripherals {
     let mut config = embassy_stm32::Config::default();
     config.rcc.hse = Some(embassy_stm32::rcc::Hse {
         #[rustfmt::skip]
@@ -43,18 +44,16 @@ fn init_hal(syst: SYST) -> (Peripherals, Delay) {
     });
     config.rcc.sys = embassy_stm32::rcc::Sysclk::HSE;
     let peripherals = embassy_stm32::init(config);
-    #[rustfmt::skip]
-    let delay = Delay::new(syst, {{ hse-freq }});
-    (peripherals, delay)
+    peripherals
 }
 
 fn bootloader() {
-    let core_peri = unsafe { cortex_m::Peripherals::steal() };
-    let (peripherals, mut delay) = init_hal(core_peri.SYST);
+    let peripherals = init_hal();
 
     #[cfg(feature = "defmt")]
     {
         defmt::info!("Running bootloader");
+        embassy_time::block_for(Duration::from_millis(500));
         let mut uart_cfg = Config::default();
         uart_cfg.baudrate = 9600;
         let mut uart = Uart::new_blocking(
@@ -67,19 +66,17 @@ fn bootloader() {
 
         defmt::info!("WAITING");
         let mut byte = [0];
-        let res = uart.blocking_read(&mut byte);
-        defmt::info!("{:?}", res);
+        //let res = uart.blocking_read(&mut byte);
+        //defmt::info!("{:?}", res);
         defmt::info!("BYTE: RECV: {}", byte);
     }
-
-    delay.free();
 }
 
 #[cortex_m_rt::entry]
 fn main() -> ! {
     bootloader();
 
-    let core_peri = unsafe { cortex_m::Peripherals::steal() };
+    let core_peri = cortex_m::Peripherals::take().unwrap();
 
     #[cfg(feature = "defmt")]
     {
@@ -93,6 +90,38 @@ fn main() -> ! {
     #[allow(unreachable_code)]
     {
         cortex_m::interrupt::disable();
+
+        let rcc = pac::RCC;
+        // Enable HSI
+        rcc.cr().modify(|w| w.set_hsion(true));
+        while !rcc.cr().read().hsirdy() {}
+
+        // Switch SYSCLK to HSI
+        rcc.cfgr().modify(|w| w.set_sw(pac::rcc::vals::Sw::HSI));
+        while rcc.cfgr().read().sws() != pac::rcc::vals::Sw::HSI {}
+
+        // Disable PLL, HSE, CSS
+        rcc.cr().modify(|w| {
+            w.set_pllon(false);
+            w.set_hseon(false);
+            w.set_csson(false);
+        });
+
+        // Reset peripheral clock registers (AHB/APB enable registers)
+        // This turns off the clocks for all GPIOs, DMAs, etc.
+        rcc.ahb1enr().write(|w| w.0 = 0);
+        rcc.ahb2enr().write(|w| w.0 = 0);
+        rcc.apb1enr().write(|w| w.0 = 0);
+        rcc.apb2enr().write(|w| w.0 = 0);
+
+        // TIM1
+        pac::TIM1.cr1().modify(|w| w.set_cen(false));
+        pac::TIM1.bdtr().modify(|w| w.set_moe(false));
+        rcc.apb2rstr().modify(|w| w.set_tim1rst(true));
+        rcc.apb2rstr().modify(|w| w.set_tim1rst(false));
+        rcc.apb2enr().modify(|w| w.set_tim1en(false));
+
+        // NVIC
         for i in 0..8 {
             unsafe {
                 core_peri.NVIC.icer[i].write(0xFFFF_FFFF);
@@ -101,11 +130,12 @@ fn main() -> ! {
                 core_peri.NVIC.icpr[i].write(0xFFFF_FFFF);
             }
         }
+        // Barriers
         cortex_m::asm::dsb();
         cortex_m::asm::isb();
 
-        // Rcc?¿??
         // Do a bound check on isp and reset vector
+        unsafe { cortex_m::interrupt::enable() };
         unsafe {
             core_peri
                 .SCB
