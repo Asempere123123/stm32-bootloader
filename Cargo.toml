@@ -26,6 +26,7 @@ defmt = [
     "embassy-time/defmt"
 ]
 hse = []
+can = []
 
 [profile.dev]
 opt-level = "z"

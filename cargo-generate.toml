@@ -8,6 +8,7 @@ board-hash = { prompt = "Enter board hash id", default = "0", type = "string" }
 can = { prompt = "Enter can peripheral", default = "CAN1", type = "string" }
 can-tx = { prompt = "Enter can tx pin", default = "PA0", type = "string" }
 can-rx = { prompt = "Enter can rx pin", default = "PA1", type = "string" }
+can-baudrate = { prompt = "Enter can baudrate", default = "1000000", type = "string" }
 
 [template]
 exclude = ["Cargo.lock", "target"]

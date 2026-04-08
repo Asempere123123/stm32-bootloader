@@ -2,13 +2,10 @@
 #![no_main]
 
 use core::panic::PanicInfo;
+use embassy_stm32::Peripherals;
 
-use embassy_stm32::{
-    usart::{Config, Uart},
-    Peripherals,
-};
-
-use embassy_time::{Duration, Timer};
+#[cfg(feature = "can")]
+mod can;
 
 #[cfg(feature = "defmt")]
 use defmt_rtt as _;
@@ -20,7 +17,6 @@ unsafe extern "C" {
 #[panic_handler]
 #[allow(unused)]
 fn panic(info: &PanicInfo) -> ! {
-    // TODO: En un futuro esto usa la implementacion por can
     #[cfg(feature = "defmt")]
     defmt::error!("BOOTLOADER PANIC: {}", info);
     // (hardfault)
@@ -49,26 +45,8 @@ fn init_hal() -> Peripherals {
 fn bootloader() {
     let peripherals = init_hal();
 
-    #[cfg(feature = "defmt")]
-    {
-        defmt::info!("Running bootloader");
-        embassy_time::block_for(Duration::from_millis(500));
-        let mut uart_cfg = Config::default();
-        uart_cfg.baudrate = 9600;
-        let mut uart = Uart::new_blocking(
-            peripherals.USART1,
-            peripherals.PA10,
-            peripherals.PA9,
-            uart_cfg,
-        )
-        .unwrap();
-
-        defmt::info!("WAITING");
-        let mut byte = [0];
-        //let res = uart.blocking_read(&mut byte);
-        //defmt::info!("{:?}", res);
-        defmt::info!("BYTE: RECV: {}", byte);
-    }
+    #[cfg(feature = "can")]
+    can::can_flashing(peripherals);
 }
 
 #[cortex_m_rt::entry]
@@ -108,7 +86,7 @@ fn main() -> ! {
         cortex_m::asm::dsb();
         cortex_m::asm::isb();
 
-        // Do a bound check on isp and reset vector
+        // TODO: Do a bound check on isp and reset vector
         unsafe {
             core_peri
                 .SCB
