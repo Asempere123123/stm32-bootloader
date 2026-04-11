@@ -43,10 +43,12 @@ fn init_hal() -> Peripherals {
 }
 
 fn bootloader() {
-    let peripherals = init_hal();
+    let mut peripherals = init_hal();
 
     #[cfg(feature = "can")]
-    can::can_flashing(peripherals);
+    can::can_flashing(&mut peripherals);
+
+    let _ = peripherals;
 }
 
 #[cortex_m_rt::entry]
@@ -95,7 +97,7 @@ fn main() -> ! {
             cortex_m::asm::dsb();
             cortex_m::asm::isb();
 
-            unsafe { cortex_m::interrupt::enable() };
+            cortex_m::interrupt::enable();
             cortex_m::asm::bootload(&_app_vector_table);
         }
         panic!("App returned");
