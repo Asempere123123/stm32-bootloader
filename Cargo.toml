@@ -11,6 +11,7 @@ doctest = false
 bench = false
 
 [dependencies]
+arrayvec = { version = "0.7.6", default-features = false }
 bytemuck = "1.25.0"
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
