@@ -1,15 +1,10 @@
 use embassy_stm32::{
     bind_interrupts,
     can::{self, Can, Frame, Id, StandardId},
-    flash::{self, Flash},
+    flash::{Blocking, Flash},
     peripherals,
 };
-use embassy_sync::{
-    blocking_mutex::raw::NoopRawMutex,
-    zerocopy_channel::{Channel, Sender},
-};
 use embassy_time::{Duration, WithTimeout};
-use static_cell::StaticCell;
 
 // Has to be templated
 const BOARD_ID: u64 = {{ board-hash }};
@@ -17,10 +12,6 @@ const CAN_BITRATE: u32 = {{ can-baudrate }};
 const BOOTLOADER_SIZE: usize = {{ flash-size }} * 1024;
 
 const CAN_BOOTLOADER_TIMEOUT: Duration = Duration::from_millis(500);
-
-static FLASH_CHANNEL_BUFFER: StaticCell<[FlashSectorToWrite; 2]> = StaticCell::new();
-static FLASH_CHANNEL: StaticCell<Channel<'static, NoopRawMutex, FlashSectorToWrite>> =
-    StaticCell::new();
 
 // Has to be templated
 bind_interrupts!(
@@ -40,12 +31,6 @@ bind_interrupts!(
         {{ can2 }}_RX0 => can::Rx0InterruptHandler<peripherals::{{ can2 }}>;
         {{ can2 }}_RX1 => can::Rx1InterruptHandler<peripherals::{{ can2 }}>;
         {{ can2 }}_SCE => can::SceInterruptHandler<peripherals::{{ can2 }}>;
-    }
-);
-
-bind_interrupts!(
-    struct IrqsFlash {
-        FLASH => flash::InterruptHandler;
     }
 );
 
@@ -79,20 +64,27 @@ macro_rules! select_can_ref_mut {
 }
 {% endraw %}
 
-pub async fn can_flashing(
-    peri: embassy_stm32::Peripherals,
-    spawner: &mut embassy_executor::Spawner,
-) {
+pub async fn can_flashing(peri: &mut embassy_stm32::Peripherals) {
     #[cfg(feature = "defmt")]
     defmt::info!("ENTERING CAN FLASHING");
 
     // Init peripherals
     // Has to be templated
-    let mut can1 = can::Can::new(peri.{{ can }}, peri.{{ can-rx }}, peri.{{ can-tx }}, IrqsCan1);
+    let mut can1 = can::Can::new(
+        peri.{{ can }}.reborrow(),
+        peri.{{ can-rx }}.reborrow(),
+        peri.{{ can-tx }}.reborrow(),
+        IrqsCan1,
+    );
 
     // Has to be templated
     #[cfg(feature = "can2")]
-    let mut can2 = can::Can::new(peri.{{ can2 }}, peri.{{ can2-rx }}, peri.{{ can2-tx }}, IrqsCan2);
+    let mut can2 = can::Can::new(
+        peri.{{ can2 }}.reborrow(),
+        peri.{{ can2-rx }}.reborrow(),
+        peri.{{ can2-tx }}.reborrow(),
+        IrqsCan2,
+    );
 
     #[cfg(not(feature = "can2"))]
     can1.modify_filters()
@@ -130,52 +122,18 @@ pub async fn can_flashing(
         .await;
 
     // Erase and Ack
-    let mut flash = Flash::new(peri.FLASH, IrqsFlash);
-    if flash
-        .erase(
+    let mut flash = Flash::new_blocking(peri.FLASH.reborrow());
+    flash
+        .blocking_erase(
             BOOTLOADER_SIZE as u32,
             BOOTLOADER_SIZE as u32 + flash_info.app_len,
         )
-        .await
-        .is_err()
-    {
-        panic!();
-    }
+        .unwrap();
 
     // Start flashing
-    let (sender, mut receiver) = FLASH_CHANNEL
-        .init(Channel::new(FLASH_CHANNEL_BUFFER.init([
-            FlashSectorToWrite::empty(),
-            FlashSectorToWrite::empty(),
-        ])))
-        .split();
-
     #[cfg(feature = "defmt")]
     defmt::info!("Can Flashing ready to recv");
-    let Ok(can_task) = can_task(select_can!(can1, can2), sender, flash_info) else {
-        panic!();
-    };
-    spawner.spawn(can_task);
-
-    loop {
-        let received_sector = receiver.receive().await;
-        if received_sector.offset == u32::MAX {
-            break;
-        }
-
-        if flash
-            .write(
-                BOOTLOADER_SIZE as u32 + received_sector.offset,
-                &received_sector.data,
-            )
-            .await
-            .is_err()
-        {
-            panic!()
-        };
-
-        receiver.receive_done();
-    }
+    flash_app(select_can!(can1, can2), flash, flash_info).await;
 
     #[cfg(feature = "defmt")]
     defmt::info!("FINISHED CAN FLASHING");
@@ -197,16 +155,11 @@ impl FlashSectorToWrite {
     }
 }
 
-#[embassy_executor::task]
-async fn can_task(
-    mut can: Can<'static>,
-    mut sender: Sender<'static, NoopRawMutex, FlashSectorToWrite>,
-    _info: BeginFlashInfoMessage,
-) {
+async fn flash_app(mut can: Can<'_>, mut flash: Flash<'_, Blocking>, _info: BeginFlashInfoMessage) {
     let mut current_offset = 0;
     'app: loop {
-        let sector = sender.send().await;
-        sector.offset = current_offset;
+        let mut received_sector = FlashSectorToWrite::empty();
+        received_sector.offset = current_offset;
         can.write(&AckMessage.to_frame()).await;
 
         // It is guranteed that each one is received only once, thus counting and matching is enough
@@ -228,8 +181,8 @@ async fn can_task(
             };
 
             recv_message_count += 1;
-            let writen_sector =
-                &mut sector.data[(flash_data.index as usize)..(flash_data.index as usize + 7)];
+            let writen_sector = &mut received_sector.data
+                [(flash_data.index as usize)..(flash_data.index as usize + 7)];
             writen_sector.copy_from_slice(&flash_data.data);
 
             if recv_message_count >= FLASH_SECTOR_WRITE_SIZE / 7 {
@@ -238,17 +191,20 @@ async fn can_task(
         }
 
         can.write(&AckMessage.to_frame()).await;
-        sender.send_done();
+        flash
+            .blocking_write(
+                BOOTLOADER_SIZE as u32 + received_sector.offset,
+                &received_sector.data,
+            )
+            .unwrap();
         current_offset += FLASH_SECTOR_WRITE_SIZE as u32;
     }
 
     // Notify done
-    sender.send().await.offset = u32::MAX;
-    sender.send_done();
     can.write(&AckMessage.to_frame()).await;
 }
 
-async fn wait_can_begin_flashing_message(can: &mut Can<'static>) {
+async fn wait_can_begin_flashing_message(can: &mut Can<'_>) {
     loop {
         let Ok(message) = can.read().await else {
             continue;
@@ -264,7 +220,7 @@ async fn wait_can_begin_flashing_message(can: &mut Can<'static>) {
     }
 }
 
-async fn wait_can_flashing_info_message(can: &mut Can<'static>) -> BeginFlashInfoMessage {
+async fn wait_can_flashing_info_message(can: &mut Can<'_>) -> BeginFlashInfoMessage {
     loop {
         let Ok(message) = can.read().await else {
             continue;

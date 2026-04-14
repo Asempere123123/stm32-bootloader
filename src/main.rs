@@ -42,18 +42,18 @@ fn init_hal() -> Peripherals {
     peripherals
 }
 
-async fn bootloader(mut spawner: embassy_executor::Spawner) {
-    let peripherals = init_hal();
+fn bootloader() {
+    let mut peripherals = init_hal();
 
     #[cfg(feature = "can")]
-    can::can_flashing(peripherals, &mut spawner).await;
+    embassy_futures::block_on(can::can_flashing(&mut peripherals));
 
     let _ = peripherals;
 }
 
-#[embassy_executor::main]
-async fn main(spawner: embassy_executor::Spawner) -> ! {
-    bootloader(spawner).await;
+#[cortex_m_rt::entry]
+fn main() -> ! {
+    bootloader();
 
     let Some(core_peri) = cortex_m::Peripherals::take() else {
         panic!();

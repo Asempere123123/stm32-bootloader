@@ -1,6 +1,5 @@
 [unstable]
 build-std = ["core"]
-panic-immediate-abort = true
 
 [target.{{ chip-arch }}]
 runner = "probe-rs run --chip {{ chip-name }} --connect-under-reset"
