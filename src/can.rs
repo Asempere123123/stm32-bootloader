@@ -1,5 +1,3 @@
-use core::u32;
-
 use embassy_stm32::{
     bind_interrupts,
     can::{self, Can, Frame, Id, StandardId},
@@ -51,6 +49,7 @@ bind_interrupts!(
     }
 );
 
+{% raw %}
 macro_rules! select_can {
     ($can1:expr, $can2:expr) => {{
         #[cfg(not(feature = "can2"))]
@@ -78,6 +77,7 @@ macro_rules! select_can_ref_mut {
         }
     }};
 }
+{% endraw %}
 
 pub async fn can_flashing(
     peri: embassy_stm32::Peripherals,
