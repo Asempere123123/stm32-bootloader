@@ -1,7 +1,7 @@
 use embassy_stm32::{
     bind_interrupts,
     can::{self, Can, Frame, Id, StandardId},
-    flash::{Blocking, Flash},
+    flash::{Blocking, FLASH_SIZE, Flash},
     peripherals,
 };
 use embassy_time::{Duration, WithTimeout};
@@ -123,12 +123,20 @@ pub async fn can_flashing(peri: &mut embassy_stm32::Peripherals) {
 
     // Erase and Ack
     let mut flash = Flash::new_blocking(peri.FLASH.reborrow());
-    flash
+    if flash
         .blocking_erase(
             BOOTLOADER_SIZE as u32,
-            BOOTLOADER_SIZE as u32 + flash_info.app_len,
+            (BOOTLOADER_SIZE as u32 + flash_info.app_len).div_ceil(BOOTLOADER_SIZE as u32)
+                * (BOOTLOADER_SIZE as u32),
         )
-        .unwrap();
+        .is_err()
+    {
+        #[cfg(feature = "defmt")]
+        defmt::info!("Erasing flash failed, falling back to erasing the complete flash");
+        flash
+            .blocking_erase(BOOTLOADER_SIZE as u32, FLASH_SIZE as u32)
+            .unwrap();
+    }
 
     // Start flashing
     #[cfg(feature = "defmt")]
