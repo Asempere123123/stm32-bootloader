@@ -42,7 +42,6 @@ opt-level = "z"
 lto = "fat"
 codegen-units = 1
 panic = "immediate-abort"
-strip = "symbols"
 debug = false
 
 [profile.release]
@@ -50,5 +49,4 @@ opt-level = "z"
 lto = "fat"
 codegen-units = 1
 panic = "immediate-abort"
-strip = "symbols"
 debug = false
