@@ -1,3 +1,4 @@
 [toolchain]
-components = ["rust-src", "rustfmt"]
+components = ["rust-src", "llvm-tools"]
 targets = ["{{ chip-arch }}"]
+channel = "nightly-2026-04-12"

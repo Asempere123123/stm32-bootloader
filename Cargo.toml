@@ -1,3 +1,5 @@
+cargo-features = ["panic-immediate-abort"]
+
 [package]
 name = "stm32-bootloader"
 version = "0.1.0"
@@ -11,22 +13,24 @@ doctest = false
 bench = false
 
 [dependencies]
-arrayvec = { version = "0.7.6", default-features = false }
-bytemuck = "1.25.0"
+bytemuck = { version = "1.25.0", features = ["derive"] }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
 defmt = { version = "1.0.1", optional = true }
 defmt-rtt = { version = "1.1.0", optional = true }
-embassy-futures = "0.1.2"
+embassy-executor = { version = "0.10.0", features = ["platform-cortex-m", "executor-thread"] }
 embassy-stm32 = { version = "0.5.0", features = ["{{ chip-hal-name }}", "time", "time-driver-tim1"] }
-embassy-time = { version = "0.5.0", features = ["generic-queue-8"] }
+embassy-sync = "0.8.0"
+embassy-time = "0.5.0"
+static_cell = "2.1.1"
 
 [features]
 defmt = [
     "dep:defmt",
     "dep:defmt-rtt",
-    "embassy-futures/defmt",
+    "embassy-executor/defmt",
     "embassy-stm32/defmt",
+    "embassy-sync/defmt",
     "embassy-time/defmt"
 ]
 hse = []
@@ -35,8 +39,16 @@ can2 = []
 
 [profile.dev]
 opt-level = "z"
-lto = true
+lto = "fat"
+codegen-units = 1
+panic = "immediate-abort"
+strip = "symbols"
+debug = false
 
 [profile.release]
 opt-level = "z"
-lto = true
+lto = "fat"
+codegen-units = 1
+panic = "immediate-abort"
+strip = "symbols"
+debug = false

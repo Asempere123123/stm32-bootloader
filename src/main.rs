@@ -42,23 +42,26 @@ fn init_hal() -> Peripherals {
     peripherals
 }
 
-fn bootloader() {
-    let mut peripherals = init_hal();
+async fn bootloader(mut spawner: embassy_executor::Spawner) {
+    let peripherals = init_hal();
 
     #[cfg(feature = "can")]
-    can::can_flashing(&mut peripherals);
+    can::can_flashing(peripherals, &mut spawner).await;
 
     let _ = peripherals;
 }
 
-#[cortex_m_rt::entry]
-fn main() -> ! {
-    bootloader();
+#[embassy_executor::main]
+async fn main(spawner: embassy_executor::Spawner) -> ! {
+    bootloader(spawner).await;
 
-    let core_peri = cortex_m::Peripherals::take().unwrap();
+    let Some(core_peri) = cortex_m::Peripherals::take() else {
+        panic!();
+    };
 
     #[cfg(feature = "defmt")]
     {
+        let _ = core_peri;
         defmt::info!("Jumping to APP");
         defmt::flush();
         // On defmt mode we want to not jump to the app and only debug the bootloader
