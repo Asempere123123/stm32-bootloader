@@ -89,13 +89,15 @@ pub async fn can_flashing(peri: &mut embassy_stm32::Peripherals) {
     #[cfg(not(feature = "can2"))]
     {
         can1.modify_filters()
-            .enable_bank(0, can::Fifo::Fifo0, can::filter::BankConfig::List16([
-                can::filter::ListEntry16::data_frames_with_id(BeginCanFlashingMessage::MESSAGE_ID),
-                can::filter::ListEntry16::data_frames_with_id(AckMessage::MESSAGE_ID),
-                can::filter::ListEntry16::data_frames_with_id(FlashDataMessage::MESSAGE_ID),
-                can::filter::ListEntry16::data_frames_with_id(BeginFlashInfoMessage::MESSAGE_ID)
+            .enable_bank(0, can::Fifo::Fifo0, can::filter::BankConfig::List32([
+                can::filter::ListEntry32::data_frames_with_id(BeginCanFlashingMessage::MESSAGE_ID),
+                can::filter::ListEntry32::data_frames_with_id(AckMessage::MESSAGE_ID)
             ]))
             .enable_bank(1, can::Fifo::Fifo0, can::filter::BankConfig::List32([
+                can::filter::ListEntry32::data_frames_with_id(FlashDataMessage::MESSAGE_ID),
+                can::filter::ListEntry32::data_frames_with_id(BeginFlashInfoMessage::MESSAGE_ID)
+            ]))
+            .enable_bank(2, can::Fifo::Fifo0, can::filter::BankConfig::List32([
                 can::filter::ListEntry32::data_frames_with_id(FlashFinishMessage::MESSAGE_ID),
                 can::filter::ListEntry32::data_frames_with_id(RevertSectorMessage::MESSAGE_ID)
             ]));
@@ -103,13 +105,15 @@ pub async fn can_flashing(peri: &mut embassy_stm32::Peripherals) {
     #[cfg(feature = "can2")]
     {
         can1.modify_filters()
-            .enable_bank(14, can::Fifo::Fifo1, can::filter::BankConfig::List16([
-                can::filter::ListEntry16::data_frames_with_id(BeginCanFlashingMessage::MESSAGE_ID),
-                can::filter::ListEntry16::data_frames_with_id(AckMessage::MESSAGE_ID),
-                can::filter::ListEntry16::data_frames_with_id(FlashDataMessage::MESSAGE_ID),
-                can::filter::ListEntry16::data_frames_with_id(BeginFlashInfoMessage::MESSAGE_ID)
+            .enable_bank(14, can::Fifo::Fifo1, can::filter::BankConfig::List32([
+                can::filter::ListEntry32::data_frames_with_id(BeginCanFlashingMessage::MESSAGE_ID),
+                can::filter::ListEntry32::data_frames_with_id(AckMessage::MESSAGE_ID)
             ]))
             .enable_bank(15, can::Fifo::Fifo1, can::filter::BankConfig::List32([
+                can::filter::ListEntry32::data_frames_with_id(FlashDataMessage::MESSAGE_ID),
+                can::filter::ListEntry32::data_frames_with_id(BeginFlashInfoMessage::MESSAGE_ID)
+            ]))
+            .enable_bank(16, can::Fifo::Fifo1, can::filter::BankConfig::List32([
                 can::filter::ListEntry32::data_frames_with_id(FlashFinishMessage::MESSAGE_ID),
                 can::filter::ListEntry32::data_frames_with_id(RevertSectorMessage::MESSAGE_ID)
             ]));
