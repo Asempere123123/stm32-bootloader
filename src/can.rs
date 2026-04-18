@@ -87,14 +87,33 @@ pub async fn can_flashing(peri: &mut embassy_stm32::Peripherals) {
     );
 
     #[cfg(not(feature = "can2"))]
-    can1.modify_filters()
-        .enable_bank(0, can::Fifo::Fifo0, can::filter::Mask32::accept_all());
+    {
+        can1.modify_filters()
+            .enable_bank(0, can::Fifo::Fifo0, can::filter::BankConfig::List16([
+                can::filter::ListEntry16::data_frames_with_id(BeginCanFlashingMessage::MESSAGE_ID),
+                can::filter::ListEntry16::data_frames_with_id(AckMessage::MESSAGE_ID),
+                can::filter::ListEntry16::data_frames_with_id(FlashDataMessage::MESSAGE_ID),
+                can::filter::ListEntry16::data_frames_with_id(BeginFlashInfoMessage::MESSAGE_ID)
+            ]))
+            .enable_bank(1, can::Fifo::Fifo0, can::filter::BankConfig::List32([
+                can::filter::ListEntry32::data_frames_with_id(FlashFinishMessage::MESSAGE_ID),
+                can::filter::ListEntry32::data_frames_with_id(RevertSectorMessage::MESSAGE_ID)
+            ]));
+    }
     #[cfg(feature = "can2")]
-    can1.modify_filters().slave_filters().enable_bank(
-        14,
-        can::Fifo::Fifo1,
-        can::filter::Mask32::accept_all(),
-    );
+    {
+        can1.modify_filters()
+            .enable_bank(14, can::Fifo::Fifo1, can::filter::BankConfig::List16([
+                can::filter::ListEntry16::data_frames_with_id(BeginCanFlashingMessage::MESSAGE_ID),
+                can::filter::ListEntry16::data_frames_with_id(AckMessage::MESSAGE_ID),
+                can::filter::ListEntry16::data_frames_with_id(FlashDataMessage::MESSAGE_ID),
+                can::filter::ListEntry16::data_frames_with_id(BeginFlashInfoMessage::MESSAGE_ID)
+            ]))
+            .enable_bank(15, can::Fifo::Fifo1, can::filter::BankConfig::List32([
+                can::filter::ListEntry32::data_frames_with_id(FlashFinishMessage::MESSAGE_ID),
+                can::filter::ListEntry32::data_frames_with_id(RevertSectorMessage::MESSAGE_ID)
+            ]));
+    }
 
     select_can_ref_mut!(can1, can2).set_bitrate(CAN_BITRATE);
     select_can_ref_mut!(can1, can2).enable().await;
@@ -249,7 +268,7 @@ pub struct BeginCanFlashingMessage {
 }
 
 impl BeginCanFlashingMessage {
-    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(0) });
+    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(0x303) });
 
     #[allow(unused)]
     pub fn try_from_frame(frame: &Frame) -> Option<Self> {
@@ -276,7 +295,7 @@ impl BeginCanFlashingMessage {
 pub struct AckMessage;
 
 impl AckMessage {
-    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(1) });
+    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(0x304) });
 
     #[allow(unused)]
     pub fn try_from_frame(frame: &Frame) -> Option<Self> {
@@ -305,7 +324,7 @@ pub struct FlashDataMessage {
 }
 
 impl FlashDataMessage {
-    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(2) });
+    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(0x305) });
 
     #[allow(unused)]
     pub fn try_from_frame(frame: &Frame) -> Option<Self> {
@@ -333,7 +352,7 @@ pub struct BeginFlashInfoMessage {
 }
 
 impl BeginFlashInfoMessage {
-    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(3) });
+    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(0x306) });
 
     #[allow(unused)]
     pub fn try_from_frame(frame: &Frame) -> Option<Self> {
@@ -357,7 +376,7 @@ impl BeginFlashInfoMessage {
 pub struct FlashFinishMessage;
 
 impl FlashFinishMessage {
-    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(4) });
+    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(0x307) });
 
     #[allow(unused)]
     pub fn try_from_frame(frame: &Frame) -> Option<Self> {
@@ -381,7 +400,7 @@ impl FlashFinishMessage {
 pub struct RevertSectorMessage;
 
 impl RevertSectorMessage {
-    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(5) });
+    const MESSAGE_ID: Id = Id::Standard(unsafe { StandardId::new_unchecked(0x308) });
 
     #[allow(unused)]
     pub fn try_from_frame(frame: &Frame) -> Option<Self> {
