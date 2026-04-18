@@ -105,6 +105,7 @@ pub async fn can_flashing(peri: &mut embassy_stm32::Peripherals) {
     #[cfg(feature = "can2")]
     {
         can1.modify_filters()
+            .slave_filters()
             .enable_bank(14, can::Fifo::Fifo1, can::filter::BankConfig::List32([
                 can::filter::ListEntry32::data_frames_with_id(BeginCanFlashingMessage::MESSAGE_ID),
                 can::filter::ListEntry32::data_frames_with_id(AckMessage::MESSAGE_ID)
