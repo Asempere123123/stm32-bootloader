@@ -16,10 +16,10 @@ const CAN_BOOTLOADER_TIMEOUT: Duration = Duration::from_millis(500);
 // Has to be templated
 bind_interrupts!(
     struct IrqsCan1 {
-        {{ can-int-name }}_TX => can::TxInterruptHandler<peripherals::{{ can }}>;
-        {{ can-int-name }}_RX0 => can::Rx0InterruptHandler<peripherals::{{ can }}>;
-        {{ can-int-name }}_RX1 => can::Rx1InterruptHandler<peripherals::{{ can }}>;
-        {{ can-int-name }}_SCE => can::SceInterruptHandler<peripherals::{{ can }}>;
+        {{ can-tx-int-name }} => can::TxInterruptHandler<peripherals::{{ can }}>;
+        {{ can-rx0-int-name }} => can::Rx0InterruptHandler<peripherals::{{ can }}>;
+        {{ can-rx1-int-name }} => can::Rx1InterruptHandler<peripherals::{{ can }}>;
+        {{ can-sce-int-name }} => can::SceInterruptHandler<peripherals::{{ can }}>;
     }
 );
 
