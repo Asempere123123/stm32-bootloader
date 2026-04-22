@@ -6,6 +6,7 @@ flash-size = { prompt = "Enter flask size (K)", default = "16", type = "string" 
 hse-freq = { prompt = "Enter HSE freq", default = "8000000", type = "string" }
 board-hash = { prompt = "Enter board hash id", default = "0", type = "string" }
 can = { prompt = "Enter can peripheral", default = "CAN1", type = "string" }
+can-int-name = { prompt = "Enter can peripheral", default = "CAN1", type = "string" }
 can-tx = { prompt = "Enter can tx pin", default = "PA0", type = "string" }
 can-rx = { prompt = "Enter can rx pin", default = "PA1", type = "string" }
 can2 = { prompt = "Enter can peripheral", default = "CAN1", type = "string" }
