@@ -171,23 +171,24 @@ pub async fn can_flashing(peri: &mut embassy_stm32::Peripherals) {
     defmt::info!("FINISHED CAN FLASHING");
 }
 
-const FLASH_SECTOR_WRITE_SIZE: usize = 32 * 7;
+const MAX_FLASH_SECTOR_WRITE_SIZE: usize = 32 * 7;
 
 struct FlashSectorToWrite {
     offset: u32,
-    data: [u8; FLASH_SECTOR_WRITE_SIZE],
+    data: [u8; MAX_FLASH_SECTOR_WRITE_SIZE],
 }
 
 impl FlashSectorToWrite {
     pub fn empty() -> Self {
         Self {
             offset: u32::MAX,
-            data: [0; FLASH_SECTOR_WRITE_SIZE],
+            data: [0; MAX_FLASH_SECTOR_WRITE_SIZE],
         }
     }
 }
 
-async fn flash_app(mut can: Can<'_>, mut flash: Flash<'_, Blocking>, _info: BeginFlashInfoMessage) {
+async fn flash_app(mut can: Can<'_>, mut flash: Flash<'_, Blocking>, info: BeginFlashInfoMessage) {
+    let sector_size_bytes = info.sector_size as usize * 7;
     let mut current_offset = 0;
     'app: loop {
         let mut received_sector = FlashSectorToWrite::empty();
@@ -217,7 +218,7 @@ async fn flash_app(mut can: Can<'_>, mut flash: Flash<'_, Blocking>, _info: Begi
                 [(flash_data.index as usize)..(flash_data.index as usize + 7)];
             writen_sector.copy_from_slice(&flash_data.data);
 
-            if recv_message_count >= FLASH_SECTOR_WRITE_SIZE / 7 {
+            if recv_message_count >= info.sector_size as usize {
                 break 'frame;
             }
         }
@@ -226,10 +227,10 @@ async fn flash_app(mut can: Can<'_>, mut flash: Flash<'_, Blocking>, _info: Begi
         flash
             .blocking_write(
                 BOOTLOADER_SIZE as u32 + received_sector.offset,
-                &received_sector.data,
+                &received_sector.data[0..sector_size_bytes],
             )
             .unwrap();
-        current_offset += FLASH_SECTOR_WRITE_SIZE as u32;
+        current_offset += sector_size_bytes as u32;
     }
 
     // Notify done
@@ -350,10 +351,11 @@ impl FlashDataMessage {
     }
 }
 
-#[repr(C)]
+#[repr(C, packed)]
 #[derive(bytemuck::AnyBitPattern, bytemuck::NoUninit, Clone, Copy)]
 pub struct BeginFlashInfoMessage {
     app_len: u32,
+    sector_size: u8,
 }
 
 impl BeginFlashInfoMessage {
