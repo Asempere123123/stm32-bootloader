@@ -2,10 +2,12 @@
 #![no_main]
 
 use core::panic::PanicInfo;
-use embassy_stm32::Peripherals;
 
 #[cfg(feature = "can")]
 mod can;
+
+#[cfg(feature = "fdcan")]
+mod fdcan;
 
 #[cfg(feature = "defmt")]
 use defmt_rtt as _;
@@ -23,30 +25,37 @@ fn panic(info: &PanicInfo) -> ! {
     cortex_m::asm::udf()
 }
 
-#[cfg(not(feature = "hse"))]
-fn init_hal() -> Peripherals {
-    let peripherals = embassy_stm32::init(embassy_stm32::Config::default());
-    peripherals
-}
-
-#[cfg(feature = "hse")]
-fn init_hal() -> Peripherals {
+fn get_hal_config() -> embassy_stm32::Config {
+    #[allow(unused)]
     let mut config = embassy_stm32::Config::default();
-    config.rcc.hse = Some(embassy_stm32::rcc::Hse {
-        #[rustfmt::skip]
-        freq: embassy_stm32::time::Hertz({{ hse-freq }}),
-        mode: embassy_stm32::rcc::HseMode::Oscillator,
-    });
-    config.rcc.sys = embassy_stm32::rcc::Sysclk::HSE;
-    let peripherals = embassy_stm32::init(config);
-    peripherals
+
+    #[cfg(feature = "hse")]
+    {
+        config.rcc.hse = Some(embassy_stm32::rcc::Hse {
+            #[rustfmt::skip]
+            freq: embassy_stm32::time::Hertz({{ hse-freq }}),
+            mode: embassy_stm32::rcc::HseMode::Oscillator,
+        });
+        config.rcc.sys = embassy_stm32::rcc::Sysclk::HSE;
+    }
+
+    #[cfg(feature = "smps_power")]
+    {
+        config.rcc.supply_config = embassy_stm32::rcc::SupplyConfig::DirectSMPS;
+    }
+
+    config
 }
 
 fn bootloader() {
-    let mut peripherals = init_hal();
+    #[allow(unused)]
+    let mut peripherals = embassy_stm32::init(get_hal_config());
 
     #[cfg(feature = "can")]
     embassy_futures::block_on(can::can_flashing(&mut peripherals));
+
+    #[cfg(feature = "fdcan")]
+    embassy_futures::block_on(fdcan::fdcan_flashing(&mut peripherals));
 
     let _ = peripherals;
 }

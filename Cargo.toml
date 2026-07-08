@@ -33,6 +33,8 @@ defmt = [
 hse = []
 can = []
 can2 = []
+smps_power = []
+fdcan = []
 
 [profile.dev]
 opt-level = "z"
