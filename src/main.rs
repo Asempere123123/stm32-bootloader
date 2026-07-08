@@ -39,6 +39,22 @@ fn get_hal_config() -> embassy_stm32::Config {
         config.rcc.sys = embassy_stm32::rcc::Sysclk::HSE;
     }
 
+    {% assign chip-family = chip-hal-name | slice: 0, 7 %}
+    {% if chip-family == "stm32h7" -%}
+    #[cfg(all(not(feature = "hse"), feature = "fdcan"))]
+    {
+        config.rcc.mux.fdcansel = embassy_stm32::rcc::mux::Fdcansel::PLL1_Q;
+        config.rcc.pll1 = Some(embassy_stm32::rcc::Pll {
+            source: embassy_stm32::rcc::PllSource::HSI,
+            prediv: embassy_stm32::rcc::PllPreDiv::DIV8,
+            mul: embassy_stm32::rcc::PllMul::MUL50,
+            divp: Some(embassy_stm32::rcc::PllDiv::DIV2),
+            divq: Some(embassy_stm32::rcc::PllDiv::DIV10),
+            divr: None,
+        });
+    }
+    {% endif -%}
+
     #[cfg(feature = "smps_power")]
     {
         config.rcc.supply_config = embassy_stm32::rcc::SupplyConfig::DirectSMPS;
