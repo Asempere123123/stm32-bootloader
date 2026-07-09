@@ -17,15 +17,17 @@ bytemuck = { version = "1.25.0", features = ["derive"] }
 cortex-m = { version = "0.7.7", features = ["critical-section-single-core"] }
 cortex-m-rt = "0.7.5"
 defmt = { version = "1.0.1", optional = true }
-defmt-rtt = { version = "1.1.0", optional = true }
 embassy-futures = "0.1.2"
 embassy-stm32 = { version = "0.5.0", features = ["{{ chip-hal-name }}", "time", "time-driver-tim1"] }
 embassy-time = { version = "0.5.0", features = ["generic-queue-8"] }
+embedded-can = { version = "0.4.1", optional = true }
+rtt-target = { version = "0.6.2", features = ["defmt"], optional = true }
 
 [features]
+rtt = ["dep:rtt-target"]
 defmt = [
+    "rtt",
     "dep:defmt",
-    "dep:defmt-rtt",
     "embassy-futures/defmt",
     "embassy-stm32/defmt",
     "embassy-time/defmt"
@@ -34,7 +36,9 @@ hse = []
 can = []
 can2 = []
 smps_power = []
-fdcan = []
+fdcan = ["dep:embedded-can"]
+rtt-host-to-chip = ["rtt"]
+external-octo-spi-flash = ["rtt-host-to-chip"]
 
 [profile.dev]
 opt-level = "z"

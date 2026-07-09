@@ -9,8 +9,11 @@ mod can;
 #[cfg(feature = "fdcan")]
 mod fdcan;
 
-#[cfg(feature = "defmt")]
-use defmt_rtt as _;
+#[cfg(feature = "rtt")]
+mod rtt;
+
+#[cfg(feature = "rtt-host-to-chip")]
+mod host_to_chip;
 
 unsafe extern "C" {
     static _app_vector_table: u32;
@@ -64,6 +67,14 @@ fn get_hal_config() -> embassy_stm32::Config {
 }
 
 fn bootloader() {
+    #[cfg(feature = "rtt")]
+    let rtt = crate::rtt_init!();
+    #[cfg(feature = "defmt")]
+    rtt_target::set_defmt_channel(rtt.up.0);
+    #[cfg(feature = "rtt-host-to-chip")]
+    #[allow(unused)]
+    let mut host_to_chip = host_to_chip::HostToChip::new(rtt.down.0);
+
     #[allow(unused)]
     let mut peripherals = embassy_stm32::init(get_hal_config());
 
