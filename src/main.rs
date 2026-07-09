@@ -75,6 +75,9 @@ fn bootloader() {
     #[allow(unused)]
     let mut host_to_chip = host_to_chip::HostToChip::new(rtt.down.0);
 
+    #[cfg(feature = "rtt-host-to-chip")]
+    host_to_chip.echo_loop();
+
     #[allow(unused)]
     let mut peripherals = embassy_stm32::init(get_hal_config());
 
