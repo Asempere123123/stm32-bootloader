@@ -21,7 +21,7 @@ macro_rules! rtt_init {
     () => {% raw %}{{{% endraw %}
         let channels = ::rtt_target::rtt_init! {
             up: {
-                0: { size: 1024, name: "defmt" }
+                0: { size: 2048, name: "defmt" }
                 1: { size: 512, name: "commands" }
             }
             down: {
@@ -39,7 +39,7 @@ macro_rules! rtt_init {
     () => {% raw %}{{{% endraw %}
         let channels = ::rtt_target::rtt_init! {
             up: {
-                0: { size: 1024, name: "defmt" }
+                0: { size: 2048, name: "defmt" }
             }
         };
 
