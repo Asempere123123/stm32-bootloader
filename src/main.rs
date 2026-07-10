@@ -109,6 +109,9 @@ fn bootloader() {
     #[cfg(feature = "fdcan")]
     embassy_futures::block_on(fdcan::fdcan_flashing(&mut peripherals));
 
+    #[cfg(feature = "external-flash")]
+    external_flash::enable_memory_mapped_mode(&mut peripherals);
+
     let _ = peripherals;
 }
 

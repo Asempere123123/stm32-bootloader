@@ -21,6 +21,7 @@ fdcan-rx = { prompt = "Enter fdcan rx pin", default = "PA0", type = "string" }
 fdcan-tx = { prompt = "Enter fdcan tx pin", default = "PA0", type = "string" }
 fdcan-it0-int-name = { prompt = "Enter fdcan int 0 name", default = "NONE", type = "string" }
 fdcan-it1-int-name = { prompt = "Enter fdcan int 1 name", default = "NONE", type = "string" }
+external-flash-addr = { prompt = "External flash addr", default = "NONE", type = "string" }
 
 [template]
 exclude = ["Cargo.lock", "target"]

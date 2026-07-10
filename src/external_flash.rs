@@ -81,6 +81,15 @@ pub async fn flash_from_debugger(
     defmt::info!("Finished flashing external flash");
 }
 
+pub fn enable_memory_mapped_mode(peri: &mut embassy_stm32::Peripherals) {
+    let Ok(mut flash) = crate::create_external_flash!(peri) else {
+        panic!();
+    };
+    let ref_flash: &mut dyn ExternalFlash = &mut flash;
+    ref_flash.enabled_memory_mapped_mode();
+    core::mem::forget(flash);
+}
+
 async fn receive_byte(host_to_chip: &mut HostToChip) -> u8 {
     let mut buf = [0u8];
     receive_buf(host_to_chip, &mut buf).await;
