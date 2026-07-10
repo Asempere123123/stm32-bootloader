@@ -34,7 +34,7 @@ macro_rules! create_external_flash {
             free_running_clock: false,
             clock_mode: false,
             wrap_size: WrapSize::None,
-            clock_prescaler: 0,
+            clock_prescaler: 0, // TEMPLATE ASWELL
             sample_shifting: false,
             delay_hold_quarter_cycle: true,
             chip_select_boundary: 0,
@@ -350,12 +350,12 @@ impl<'d, T: Instance> OctoSpiFlash<'d, T> {
             dwidth: OspiWidth::OCTO,
             ddtr: true,
             dummy: DummyCycles::_20, // TO TEMPLATE
-            dqse: false,
+            dqse: true,
             sioo: false,
         };
 
         self.ospi.enable_memory_mapped_mode(read_cfg, write_cfg)?;
-        embassy_time::block_for(embassy_time::Duration::from_millis(1));
+        embassy_time::block_for(embassy_time::Duration::from_millis(1000));
 
         Ok(())
     }
