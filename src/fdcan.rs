@@ -43,8 +43,8 @@ pub async fn fdcan_flashing(peri: &mut embassy_stm32::Peripherals) {
     can.set_bitrate(CAN_BITRATE);
     let mut can = can.start(OperatingMode::NormalOperationMode);
 
-    // Way to scared to have anything functional here
-    match can.read().await {
+    // TODO: Correct implementation
+    /*match can.read().await {
         Ok(msg) => {
             can.write(&msg.frame).await;
         }
@@ -52,5 +52,5 @@ pub async fn fdcan_flashing(peri: &mut embassy_stm32::Peripherals) {
             #[cfg(feature = "defmt")]
             defmt::warn!("Error reading can: {}", e);
         }
-    }
+    }*/
 }

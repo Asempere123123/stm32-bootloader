@@ -39,17 +39,19 @@ smps_power = []
 fdcan = ["dep:embedded-can"]
 rtt-host-to-chip = ["rtt"]
 external-octo-spi-flash = ["rtt-host-to-chip"]
+external-flash = ["rtt-host-to-chip"]
+external-macronix-octo-spi-flash = ["external-flash"]
 
 [profile.dev]
 opt-level = "z"
 lto = "fat"
 codegen-units = 1
 panic = "immediate-abort"
-debug = false
+debug = 2
 
 [profile.release]
 opt-level = "z"
 lto = "fat"
 codegen-units = 1
 panic = "immediate-abort"
-debug = false
+debug = 2

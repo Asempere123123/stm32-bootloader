@@ -15,6 +15,12 @@ mod rtt;
 #[cfg(feature = "rtt-host-to-chip")]
 mod host_to_chip;
 
+#[cfg(feature = "external-flash")]
+mod external_flash;
+
+#[cfg(feature = "external-macronix-octo-spi-flash")]
+mod macronix_octo_spi;
+
 unsafe extern "C" {
     static _app_vector_table: u32;
 }
@@ -56,6 +62,19 @@ fn get_hal_config() -> embassy_stm32::Config {
             divr: None,
         });
     }
+
+    #[cfg(feature = "external-macronix-octo-spi-flash")]
+    {
+        config.rcc.mux.octospisel = embassy_stm32::rcc::mux::Fmcsel::PLL1_Q;
+        config.rcc.pll1 = Some(embassy_stm32::rcc::Pll {
+            source: embassy_stm32::rcc::PllSource::HSI,
+            prediv: embassy_stm32::rcc::PllPreDiv::DIV8,
+            mul: embassy_stm32::rcc::PllMul::MUL50,
+            divp: Some(embassy_stm32::rcc::PllDiv::DIV2),
+            divq: Some(embassy_stm32::rcc::PllDiv::DIV10),
+            divr: None,
+        });
+    }
     {% endif -%}
 
     #[cfg(feature = "smps_power")]
@@ -70,16 +89,19 @@ fn bootloader() {
     #[cfg(feature = "rtt")]
     let rtt = crate::rtt_init!();
     #[cfg(feature = "defmt")]
-    rtt_target::set_defmt_channel(rtt.up.0);
+    rtt_target::set_defmt_channel(rtt.2);
     #[cfg(feature = "rtt-host-to-chip")]
     #[allow(unused)]
-    let mut host_to_chip = host_to_chip::HostToChip::new(rtt.down.0);
-
-    #[cfg(feature = "rtt-host-to-chip")]
-    host_to_chip.echo_loop();
+    let mut host_to_chip = host_to_chip::HostToChip::new(rtt.1, rtt.0);
 
     #[allow(unused)]
     let mut peripherals = embassy_stm32::init(get_hal_config());
+
+    #[cfg(feature = "external-flash")]
+    embassy_futures::block_on(external_flash::flash_from_debugger(
+        &mut peripherals,
+        &mut host_to_chip,
+    ));
 
     #[cfg(feature = "can")]
     embassy_futures::block_on(can::can_flashing(&mut peripherals));
