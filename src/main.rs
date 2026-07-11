@@ -73,7 +73,11 @@ fn get_hal_config() -> embassy_stm32::Config {
             freq: embassy_stm32::time::Hertz({{ hse-freq }}),
             mode: embassy_stm32::rcc::HseMode::Oscillator,
         });
+
+        {% assign chip-family = chip-hal-name | slice: 0, 7 %}
+        {% if chip-family != "stm32h7" -%}
         config.rcc.sys = embassy_stm32::rcc::Sysclk::HSE;
+        {% endif -%}
     }
 
     {% assign chip-family = chip-hal-name | slice: 0, 7 %}
