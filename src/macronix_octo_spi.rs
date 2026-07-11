@@ -355,7 +355,7 @@ impl<'d, T: Instance> OctoSpiFlash<'d, T> {
         };
 
         self.ospi.enable_memory_mapped_mode(read_cfg, write_cfg)?;
-        embassy_time::block_for(embassy_time::Duration::from_millis(1000));
+        embassy_time::block_for(embassy_time::Duration::from_millis(1));
 
         Ok(())
     }
