@@ -288,30 +288,44 @@ impl<'d, T: Instance> OctoSpiFlash<'d, T> {
         self.poll_for_mem_ready()
     }
 
-    pub fn write(&mut self, addr: u32, buf: &[u8]) -> Result<(), OspiError> {
-        self.enable_write()?;
+    pub fn write(&mut self, mut addr: u32, mut buf: &[u8]) -> Result<(), OspiError> {
+        while !buf.is_empty() {
+            let page_offset = (addr % CHIP_WRITE_SIZE as u32) as usize;
+            let bytes_to_page_end = CHIP_WRITE_SIZE - page_offset;
 
-        let write_cmd = TransferConfig {
-            iwidth: OspiWidth::OCTO,
-            instruction: Some(OCTAL_PAGE_PROG_CMD),
-            isize: AddressSize::_16Bit,
-            idtr: true,
-            adwidth: OspiWidth::OCTO,
-            address: Some(addr),
-            adsize: AddressSize::_32bit,
-            addtr: true,
-            abwidth: OspiWidth::NONE,
-            alternate_bytes: None,
-            absize: AddressSize::_8Bit,
-            abdtr: false,
-            dwidth: OspiWidth::OCTO,
-            ddtr: true,
-            dummy: DummyCycles::_0,
-            dqse: true,
-            sioo: false,
-        };
-        self.ospi.blocking_write(buf, write_cmd)?;
-        self.poll_for_mem_ready()
+            let chunk_size = core::cmp::min(buf.len(), bytes_to_page_end);
+            let (current_chunk, remainder) = buf.split_at(chunk_size);
+            buf = remainder;
+
+            self.enable_write()?;
+
+            let write_cmd = TransferConfig {
+                iwidth: OspiWidth::OCTO,
+                instruction: Some(OCTAL_PAGE_PROG_CMD),
+                isize: AddressSize::_16Bit,
+                idtr: true,
+                adwidth: OspiWidth::OCTO,
+                address: Some(addr),
+                adsize: AddressSize::_32bit,
+                addtr: true,
+                abwidth: OspiWidth::NONE,
+                alternate_bytes: None,
+                absize: AddressSize::_8Bit,
+                abdtr: false,
+                dwidth: OspiWidth::OCTO,
+                ddtr: true,
+                dummy: DummyCycles::_0,
+                dqse: true,
+                sioo: false,
+            };
+
+            self.ospi.blocking_write(current_chunk, write_cmd)?;
+            self.poll_for_mem_ready()?;
+
+            addr += chunk_size as u32;
+        }
+
+        Ok(())
     }
 
     pub fn enabled_memory_mapped_mode(&mut self) -> Result<(), OspiError> {
