@@ -22,6 +22,23 @@ fdcan-tx = { prompt = "Enter fdcan tx pin", default = "PA0", type = "string" }
 fdcan-it0-int-name = { prompt = "Enter fdcan int 0 name", default = "NONE", type = "string" }
 fdcan-it1-int-name = { prompt = "Enter fdcan int 1 name", default = "NONE", type = "string" }
 external-flash-addr = { prompt = "External flash addr", default = "NONE", type = "string" }
+external-flash-erase-size = { prompt = "External flash erase size", default = "NONE", type = "string" }
+external-flash-write-size = { prompt = "External flash write size", default = "NONE", type = "string" }
+
+octo-spi-dummy-cycles = { prompt = "Ospi dummy cycles", default = "NONE", type = "string" }
+octo-spi-device-size = { prompt = "Ospi device size", default = "NONE", type = "string" }
+octo-spi-peri = { prompt = "Ospi peri name", default = "NONE", type = "string" }
+octo-spi-sck = { prompt = "Ospi sck name", default = "NONE", type = "string" }
+octo-spi-d0 = { prompt = "Ospi d0 name", default = "NONE", type = "string" }
+octo-spi-d1 = { prompt = "Ospi d1 name", default = "NONE", type = "string" }
+octo-spi-d2 = { prompt = "Ospi d2 name", default = "NONE", type = "string" }
+octo-spi-d3 = { prompt = "Ospi d3 name", default = "NONE", type = "string" }
+octo-spi-d4 = { prompt = "Ospi d4 name", default = "NONE", type = "string" }
+octo-spi-d5 = { prompt = "Ospi d5 name", default = "NONE", type = "string" }
+octo-spi-d6 = { prompt = "Ospi d6 name", default = "NONE", type = "string" }
+octo-spi-d7 = { prompt = "Ospi d7 name", default = "NONE", type = "string" }
+octo-spi-cs = { prompt = "Ospi cs name", default = "NONE", type = "string" }
+octo-spi-dqs = { prompt = "Ospi dqs name", default = "NONE", type = "string" }
 
 [template]
 exclude = ["Cargo.lock", "target"]

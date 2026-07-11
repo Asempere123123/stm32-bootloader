@@ -18,8 +18,9 @@ const OCTAL_32KB_BLOCK_ERASE_CMD: u32 = 0x52AD;
 const OCTAL_PAGE_PROG_CMD: u32 = 0x12ED;
 
 // TO BE TEMPLATED
-const CHIP_ERASE_SIZE: usize = 32 * 1024;
-const CHIP_WRITE_SIZE: usize = 256;
+const CHIP_ERASE_SIZE: usize = {{ external-flash-erase-size }};
+const CHIP_WRITE_SIZE: usize = {{ external-flash-write-size }};
+const DUMMY_CYCLES: DummyCycles = DummyCycles::_{{ octo-spi-dummy-cycles }};
 
 #[macro_export]
 macro_rules! create_external_flash {
@@ -29,12 +30,12 @@ macro_rules! create_external_flash {
         let config = Config {
             fifo_threshold: FIFOThresholdLevel::_4Bytes,
             memory_type: MemoryType::Macronix,
-            device_size: MemorySize::Other(26), // To template. I dont know if the rest of fields are needed
+            device_size: MemorySize::Other({{ octo-spi-device-size }}), // To template
             chip_select_high_time: ChipSelectHighTime::_2Cycle,
             free_running_clock: false,
             clock_mode: false,
             wrap_size: WrapSize::None,
-            clock_prescaler: 0, // TEMPLATE ASWELL
+            clock_prescaler: 0, // TEMPLATE ASWELL maybe not?
             sample_shifting: false,
             delay_hold_quarter_cycle: true,
             chip_select_boundary: 0,
@@ -44,18 +45,18 @@ macro_rules! create_external_flash {
         };
 
         let ospi = Ospi::new_blocking_octospi_with_dqs(
-            $peri.OCTOSPI1.reborrow(),
-            $peri.PB2.reborrow(),
-            $peri.PD11.reborrow(),
-            $peri.PF9.reborrow(),
-            $peri.PF7.reborrow(),
-            $peri.PF6.reborrow(),
-            $peri.PC1.reborrow(),
-            $peri.PH3.reborrow(),
-            $peri.PG9.reborrow(),
-            $peri.PD7.reborrow(),
-            $peri.PG6.reborrow(), // CHIP SELECT
-            $peri.PC5.reborrow(),
+            $peri.{{ octo-spi-peri }}.reborrow(),
+            $peri.{{ octo-spi-sck }}.reborrow(),
+            $peri.{{ octo-spi-d0 }}.reborrow(),
+            $peri.{{ octo-spi-d1 }}.reborrow(),
+            $peri.{{ octo-spi-d2 }}.reborrow(),
+            $peri.{{ octo-spi-d3 }}.reborrow(),
+            $peri.{{ octo-spi-d4 }}.reborrow(),
+            $peri.{{ octo-spi-d5 }}.reborrow(),
+            $peri.{{ octo-spi-d6 }}.reborrow(),
+            $peri.{{ octo-spi-d7 }}.reborrow(),
+            $peri.{{ octo-spi-cs }}.reborrow(), // CHIP SELECT
+            $peri.{{ octo-spi-dqs }}.reborrow(),
             config,
         );
 
@@ -205,7 +206,7 @@ impl<'d, T: Instance> OctoSpiFlash<'d, T> {
             abdtr: false,
             dwidth: OspiWidth::OCTO,
             ddtr: true,
-            dummy: DummyCycles::_20, // TO TEMPLATE
+            dummy: DUMMY_CYCLES,
             dqse: true,
             sioo: false,
         };
@@ -241,7 +242,7 @@ impl<'d, T: Instance> OctoSpiFlash<'d, T> {
             abdtr: false,
             dwidth: OspiWidth::OCTO,
             ddtr: true,
-            dummy: DummyCycles::_20, // TO TEMPLATE
+            dummy: DUMMY_CYCLES,
             dqse: true,
             sioo: false,
         };
@@ -349,7 +350,7 @@ impl<'d, T: Instance> OctoSpiFlash<'d, T> {
             abdtr: false,
             dwidth: OspiWidth::OCTO,
             ddtr: true,
-            dummy: DummyCycles::_20, // TO TEMPLATE
+            dummy: DUMMY_CYCLES,
             dqse: true,
             sioo: false,
         };
